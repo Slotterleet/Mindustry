@@ -336,7 +336,7 @@ public class ArcNetProvider implements NetProvider{
 
         @Override
         public void close(){
-            if(connection.isConnected()) connection.close(DcReason.closed);
+            // Nope
         }
     }
 

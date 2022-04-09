@@ -296,30 +296,12 @@ public class NetClient implements ApplicationListener{
 
     @Remote(variants = Variant.one, priority = PacketPriority.high)
     public static void kick(KickReason reason){
-        netClient.disconnectQuietly();
-        logic.reset();
-
-        if(reason == KickReason.serverRestarting){
-            ui.join.reconnect();
-            return;
-        }
-
-        if(!reason.quiet){
-            if(reason.extraText() != null){
-                ui.showText(reason.toString(), reason.extraText());
-            }else{
-                ui.showText("@disconnect", reason.toString());
-            }
-        }
-        ui.loadfrag.hide();
+        Log.info(reason);
     }
 
     @Remote(variants = Variant.one, priority = PacketPriority.high)
     public static void kick(String reason){
-        netClient.disconnectQuietly();
-        logic.reset();
-        ui.showText("@disconnect", reason, Align.left);
-        ui.loadfrag.hide();
+        Log.info(reason);
     }
 
     @Remote(variants = Variant.both)

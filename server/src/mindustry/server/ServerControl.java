@@ -53,6 +53,30 @@ public class ServerControl implements ApplicationListener{
         }
     };
 
+    public Runnable onGameOver = () -> {
+        //set next map to be played
+        Map map = nextMapOverride != null ? nextMapOverride : maps.getNextMap(lastMode, state.map);
+        nextMapOverride = null;
+        if(map != null){
+            Call.infoMessage((state.rules.pvp
+            ? "[accent]The " + event.winner.name + " team is victorious![]\n" : "[scarlet]Game over![]\n")
+            + "\nNext selected map:[accent] " + Strings.stripColors(map.name()) + "[]"
+            + (map.tags.containsKey("author") && !map.tags.get("author").trim().isEmpty() ? " by[accent] " + map.author() + "[white]" : "") + "." +
+            "\nNew game begins in " + roundExtraTime + " seconds.");
+
+            state.gameOver = true;
+            Call.updateGameOver(event.winner);
+
+            info("Selected next map to be @.", Strings.stripColors(map.name()));
+
+            play(() -> world.loadMap(map, map.applyRules(lastMode)));
+        }else{
+            netServer.kickAll(KickReason.gameover);
+            state.set(State.menu);
+            net.closeServer();
+        }
+    };
+
     private Fi currentLogFile;
     private boolean inGameOverWait;
     private Task lastTask;
@@ -176,27 +200,7 @@ public class ServerControl implements ApplicationListener{
                 info("Game over! Team @ is victorious with @ players online on map @.", event.winner.name, Groups.player.size(), Strings.capitalize(Strings.stripColors(state.map.name())));
             }
 
-            //set next map to be played
-            Map map = nextMapOverride != null ? nextMapOverride : maps.getNextMap(lastMode, state.map);
-            nextMapOverride = null;
-            if(map != null){
-                Call.infoMessage((state.rules.pvp
-                ? "[accent]The " + event.winner.name + " team is victorious![]\n" : "[scarlet]Game over![]\n")
-                + "\nNext selected map:[accent] " + Strings.stripColors(map.name()) + "[]"
-                + (map.tags.containsKey("author") && !map.tags.get("author").trim().isEmpty() ? " by[accent] " + map.author() + "[white]" : "") + "." +
-                "\nNew game begins in " + roundExtraTime + " seconds.");
-
-                state.gameOver = true;
-                Call.updateGameOver(event.winner);
-
-                info("Selected next map to be @.", Strings.stripColors(map.name()));
-
-                play(true, () -> world.loadMap(map, map.applyRules(lastMode)));
-            }else{
-                netServer.kickAll(KickReason.gameover);
-                state.set(State.menu);
-                net.closeServer();
-            }
+            onGameOver.run();
         });
 
         //reset autosave on world load
@@ -1032,39 +1036,27 @@ public class ServerControl implements ApplicationListener{
         nextMapOverride = map;
     }
 
-    private void play(boolean wait, Runnable run){
+    public void play(Runnable run){
         inGameOverWait = true;
-        Runnable r = () -> {
-            WorldReloader reloader = new WorldReloader();
 
-            reloader.begin();
+        lastTask = Timer.schedule(() -> {
+            try{
+                WorldReloader reloader = new WorldReloader();
 
-            run.run();
+                reloader.begin();
 
-            state.rules = state.map.applyRules(lastMode);
-            logic.play();
+                run.run();
 
-            reloader.end();
-            inGameOverWait = false;
-        };
+                state.rules = state.map.applyRules(lastMode);
+                logic.play();
 
-        if(wait){
-            lastTask = new Task(){
-                @Override
-                public void run(){
-                    try{
-                        r.run();
-                    }catch(MapException e){
-                        err(e.map.name() + ": " + e.getMessage());
-                        net.closeServer();
-                    }
-                }
-            };
-
-            Timer.schedule(lastTask, roundExtraTime);
-        }else{
-            r.run();
-        }
+                reloader.end();
+                inGameOverWait = false;
+            }catch(MapException e){
+                err(e.map.name() + ": " + e.getMessage());
+                net.closeServer();
+            }
+        }, roundExtraTime);
     }
 
     private void logToFile(String text){

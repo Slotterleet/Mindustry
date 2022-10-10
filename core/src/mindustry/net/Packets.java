@@ -15,19 +15,9 @@ import java.util.zip.*;
 public class Packets{
 
     public enum KickReason{
-        kick, clientOutdated, serverOutdated, banned, gameover(true), recentKick,
+        kick, clientOutdated, serverOutdated, banned, gameover, recentKick,
         nameInUse, idInUse, nameEmpty, customClient, serverClose, vote, typeMismatch,
         whitelist, playerLimit, serverRestarting;
-
-        public final boolean quiet;
-
-        KickReason(){
-            this(false);
-        }
-
-        KickReason(boolean quiet){
-            this.quiet = quiet;
-        }
 
         @Override
         public String toString(){

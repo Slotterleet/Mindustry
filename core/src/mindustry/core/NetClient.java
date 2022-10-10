@@ -306,7 +306,7 @@ public class NetClient implements ApplicationListener{
             return;
         }
 
-        if(!reason.quiet){
+        if(reason != KickReason.gameover){
             if(reason.extraText() != null){
                 ui.showText(reason.toString(), reason.extraText());
             }else{
